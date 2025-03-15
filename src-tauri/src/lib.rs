@@ -1,3 +1,11 @@
+#[tauri::command]
+fn resize_window(window: tauri::Window, height: f64) {
+    let _ = window.set_size(tauri::Size::Physical(tauri::PhysicalSize {
+        width: 640,
+        height: height as u32,
+    }));
+}
+
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
@@ -36,6 +44,7 @@ pub fn run() {
             }
             Ok(())
         })
+        .invoke_handler(tauri::generate_handler![resize_window])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

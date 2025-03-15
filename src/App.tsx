@@ -1,32 +1,36 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 import './App.css';
 
 function App() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<string[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const resultsContainerRef = useRef<HTMLDivElement>(null);
 
+  // Dummy data
   const dummyItems = [
-    'Visual Studio Code',
-    'Chrome',
-    'Firefox',
-    'Notepad',
-    'Calculator',
-    'Settings',
-    'Explorer',
-    'Terminal',
-    'Spotify',
-    'Discord',
-    'Slack',
+    { name: 'Visual Studio Code', icon: '💻' },
+    { name: 'Chrome', icon: '🌐' },
+    { name: 'Firefox', icon: '🦊' },
+    { name: 'Slack', icon: '💬' },
+    { name: 'Spotify', icon: '🎵' },
+    { name: 'Terminal', icon: '📟' },
+    { name: 'Notes', icon: '📝' },
+    { name: 'Calculator', icon: '🧮' },
+    { name: 'Settings', icon: '⚙️' },
+    { name: 'Mail', icon: '📧' },
   ];
 
   useEffect(() => {
     if (query.trim() === '') {
       setResults([]);
     } else {
-      const filtered = dummyItems.filter((item) =>
-        item.toLowerCase().includes(query.toLowerCase())
-      );
-      setResults(filtered);
+      const filteredItems = dummyItems
+        .filter((item) => item.name.toLowerCase().includes(query.toLowerCase()))
+        .map((item) => `${item.icon} ${item.name}`);
+      setResults(filteredItems);
+      setSelectedIndex(0);
     }
   }, [query]);
 
@@ -37,26 +41,86 @@ function App() {
     }
   }, []);
 
-  return (
-    <div className='app-container'>
-      <div className='search-container'>
-        <input
-          id='search-input'
-          type='text'
-          className='search-input'
-          placeholder='Search for apps, files, web...'
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          autoFocus
-        />
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedIndex((prev) =>
+          prev < results.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : prev));
+        break;
+      case 'Enter':
+        if (results[selectedIndex]) {
+          console.log(`Launching: ${results[selectedIndex]}`);
+        }
+        break;
+      case 'Escape':
+        setQuery('');
+        break;
+    }
+  };
 
-        <div className='results-container'>
+  useEffect(() => {
+    if (resultsContainerRef.current) {
+      const searchHeight = 60;
+      const resultsHeight =
+        results.length > 0 ? Math.min(400, results.length * 44 + 16) : 0;
+
+      const totalHeight =
+        searchHeight + (resultsHeight > 0 ? resultsHeight : 0);
+
+      invoke('resize_window', { height: totalHeight });
+    }
+  }, [results]);
+
+  return (
+    <div className='raycast-wrapper'>
+      <div
+        className={`raycast-container ${
+          results.length > 0 ? 'has-results' : ''
+        }`}
+      >
+        <div className='search-container'>
+          <div className='search-icon'>⌘</div>
+          <input
+            id='search-input'
+            type='text'
+            className='search-input'
+            placeholder='Search applications...'
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            autoFocus
+          />
+          {query && (
+            <button
+              className='clear-button'
+              onClick={() => setQuery('')}
+            >
+              ×
+            </button>
+          )}
+        </div>
+
+        {results.length > 0 && <div className='results-divider'></div>}
+
+        <div
+          ref={resultsContainerRef}
+          className={`results-container ${results.length > 0 ? 'visible' : ''}`}
+        >
           {results.length > 0 ? (
             <ul className='results-list'>
               {results.map((item, index) => (
                 <li
                   key={index}
-                  className='result-item'
+                  className={`result-item ${
+                    selectedIndex === index ? 'selected' : ''
+                  }`}
+                  onClick={() => console.log(`Clicked: ${item}`)}
                 >
                   {item}
                 </li>
@@ -67,8 +131,6 @@ function App() {
           ) : null}
         </div>
       </div>
-
-      <div className='info-text'>Press Alt+Space to toggle this window</div>
     </div>
   );
 }
