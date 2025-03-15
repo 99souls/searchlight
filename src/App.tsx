@@ -1,50 +1,75 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import { useState, useEffect } from 'react';
+import './App.css';
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<string[]>([]);
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+  const dummyItems = [
+    'Visual Studio Code',
+    'Chrome',
+    'Firefox',
+    'Notepad',
+    'Calculator',
+    'Settings',
+    'Explorer',
+    'Terminal',
+    'Spotify',
+    'Discord',
+    'Slack',
+  ];
+
+  useEffect(() => {
+    if (query.trim() === '') {
+      setResults([]);
+    } else {
+      const filtered = dummyItems.filter((item) =>
+        item.toLowerCase().includes(query.toLowerCase())
+      );
+      setResults(filtered);
+    }
+  }, [query]);
+
+  useEffect(() => {
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+      searchInput.focus();
+    }
+  }, []);
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
+    <div className='app-container'>
+      <div className='search-container'>
         <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
+          id='search-input'
+          type='text'
+          className='search-input'
+          placeholder='Search for apps, files, web...'
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          autoFocus
         />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+
+        <div className='results-container'>
+          {results.length > 0 ? (
+            <ul className='results-list'>
+              {results.map((item, index) => (
+                <li
+                  key={index}
+                  className='result-item'
+                >
+                  {item}
+                </li>
+              ))}
+            </ul>
+          ) : query.trim() !== '' ? (
+            <div className='no-results'>No results found</div>
+          ) : null}
+        </div>
+      </div>
+
+      <div className='info-text'>Press Alt+Space to toggle this window</div>
+    </div>
   );
 }
 
