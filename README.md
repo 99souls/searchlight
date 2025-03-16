@@ -1,7 +1,11 @@
-# Tauri + React + Typescript
+totally not a really mid raycast clone that barely functions <br>
+i'm just a silly guy trying to learn some stuff <br>
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+next steps:
 
-## Recommended IDE Setup
-
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+1. commands, vscode command palette type vibes
+2. plugins/extensions
+3. system utils: file search, calculator, conversions
+4. categories/tabs?
+5. Organize results by type
+6. maybe upgrade search algorithm
