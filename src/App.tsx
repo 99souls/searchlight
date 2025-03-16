@@ -2,67 +2,57 @@ import { useState, useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import './App.css';
 
+interface AppInfo {
+  name: string;
+  path: string;
+  icon_path: string | null;
+  description: string | null;
+}
+
 function App() {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<string[]>([]);
+  const [apps, setApps] = useState<AppInfo[]>([]);
+  const [results, setResults] = useState<AppInfo[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const resultsContainerRef = useRef<HTMLDivElement>(null);
 
-  // Dummy data
-  const dummyItems = [
-    { name: 'Visual Studio Code', icon: '💻' },
-    { name: 'Chrome', icon: '🌐' },
-    { name: 'Firefox', icon: '🦊' },
-    { name: 'Slack', icon: '💬' },
-    { name: 'Spotify', icon: '🎵' },
-    { name: 'Terminal', icon: '📟' },
-    { name: 'Notes', icon: '📝' },
-    { name: 'Calculator', icon: '🧮' },
-    { name: 'Settings', icon: '⚙️' },
-    { name: 'Mail', icon: '📧' },
-  ];
-
   useEffect(() => {
-    if (query.trim() === '') {
-      setResults([]);
-    } else {
-      const filteredItems = dummyItems
-        .filter((item) => item.name.toLowerCase().includes(query.toLowerCase()))
-        .map((item) => `${item.icon} ${item.name}`);
-      setResults(filteredItems);
-      setSelectedIndex(0);
+    async function loadApps() {
+      try {
+        setIsLoading(true);
+        const installedApps = await invoke<AppInfo[]>('get_installed_apps');
+        setApps(installedApps);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Failed to load apps:', error);
+        setIsLoading(false);
+      }
     }
-  }, [query]);
 
-  useEffect(() => {
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) {
-      searchInput.focus();
-    }
+    loadApps();
   }, []);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        setSelectedIndex((prev) =>
-          prev < results.length - 1 ? prev + 1 : prev
-        );
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : prev));
-        break;
-      case 'Enter':
-        if (results[selectedIndex]) {
-          console.log(`Launching: ${results[selectedIndex]}`);
-        }
-        break;
-      case 'Escape':
-        setQuery('');
-        break;
+  useEffect(() => {
+    async function performSearch() {
+      if (!query.trim()) {
+        setResults([]);
+        return;
+      }
+
+      try {
+        const searchResults = await invoke<AppInfo[]>('search_applications', {
+          query,
+        });
+        setResults(searchResults);
+        setSelectedIndex(0);
+      } catch (error) {
+        console.error('Search failed:', error);
+      }
     }
-  };
+
+    performSearch();
+  }, [query]);
 
   useEffect(() => {
     if (resultsContainerRef.current) {
@@ -77,6 +67,39 @@ function App() {
     }
   }, [results]);
 
+  const launchSelectedApp = async () => {
+    if (results[selectedIndex]) {
+      try {
+        await invoke('launch_app', { appPath: results[selectedIndex].path });
+        setQuery(''); // Clear search after launching
+      } catch (error) {
+        console.error('Failed to launch app:', error);
+      }
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedIndex((prev) =>
+          prev < results.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : prev));
+        break;
+      case 'Enter':
+        e.preventDefault();
+        launchSelectedApp();
+        break;
+      case 'Escape':
+        setQuery('');
+        break;
+    }
+  };
+
   return (
     <div className='raycast-wrapper'>
       <div
@@ -90,11 +113,14 @@ function App() {
             id='search-input'
             type='text'
             className='search-input'
-            placeholder='Search applications...'
+            placeholder={
+              isLoading ? 'Loading applications...' : 'Search applications...'
+            }
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             autoFocus
+            disabled={isLoading}
           />
           {query && (
             <button
@@ -112,17 +138,23 @@ function App() {
           ref={resultsContainerRef}
           className={`results-container ${results.length > 0 ? 'visible' : ''}`}
         >
-          {results.length > 0 ? (
+          {isLoading ? (
+            <div className='loading'>Loading applications...</div>
+          ) : results.length > 0 ? (
             <ul className='results-list'>
-              {results.map((item, index) => (
+              {results.map((app, index) => (
                 <li
                   key={index}
                   className={`result-item ${
                     selectedIndex === index ? 'selected' : ''
                   }`}
-                  onClick={() => console.log(`Clicked: ${item}`)}
+                  onClick={() => {
+                    setSelectedIndex(index);
+                    launchSelectedApp();
+                  }}
                 >
-                  {item}
+                  {app.name}
+                  <span className='app-path'>{app.path}</span>
                 </li>
               ))}
             </ul>

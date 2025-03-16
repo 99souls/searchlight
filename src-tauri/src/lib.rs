@@ -1,3 +1,34 @@
+mod app_discovery;
+mod search;
+
+use app_discovery::{AppInfo, scan_windows_apps};
+use search::search_apps;
+use std::sync::Mutex;
+use std::process::Command;
+
+struct AppState {
+    apps: Mutex<Vec<AppInfo>>,
+}
+
+#[tauri::command]
+fn get_installed_apps(state: tauri::State<AppState>) -> Vec<AppInfo> {
+    state.apps.lock().unwrap().clone()
+}
+
+#[tauri::command]
+fn search_applications(query: String, state: tauri::State<AppState>) -> Vec<AppInfo> {
+    let apps = state.apps.lock().unwrap();
+    search_apps(&apps, &query)
+}
+
+#[tauri::command]
+fn launch_app(app_path: String) -> Result<(), String> {
+    match Command::new(&app_path).spawn() {
+        Ok(_) => Ok(()),
+        Err(e) => Err(format!("Failed to launch application: {}", e)),
+    }
+}
+
 #[tauri::command]
 fn resize_window(window: tauri::Window, height: f64) {
     let _ = window.set_size(tauri::Size::Physical(tauri::PhysicalSize {
@@ -7,7 +38,12 @@ fn resize_window(window: tauri::Window, height: f64) {
 }
 
 pub fn run() {
+    let apps = scan_windows_apps();
+
     tauri::Builder::default()
+        .manage(AppState {
+            apps: Mutex::new(apps),
+        })
         .setup(|app| {
             #[cfg(desktop)]
             {
@@ -44,7 +80,11 @@ pub fn run() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![resize_window])
+        .invoke_handler(tauri::generate_handler![
+            get_installed_apps,
+            search_applications,
+            launch_app,resize_window
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -29,7 +29,6 @@ html {
   background: rgba(28, 28, 30, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1);
   overflow: hidden;
   transition: all 0.2s ease;
@@ -62,7 +61,7 @@ html {
   background: transparent;
   border: none;
   font-size: 16px;
-  padding: 8px 0;
+  padding: 10px 0;
   color: #ffffff;
   outline: none;
 }
@@ -110,14 +109,12 @@ html {
 
 .results-list {
   list-style: none;
-  margin: 8px 0;
   padding: 0;
 }
 
 .result-item {
   padding: 10px 16px;
   margin: 2px 8px;
-  border-radius: 16px;
   cursor: pointer;
   transition: background-color 0.15s ease;
   font-size: 14px;
@@ -138,4 +135,30 @@ html {
   text-align: center;
   color: #8e8e93;
   font-size: 14px;
+}
+
+/* Add these to your existing App.css */
+
+.loading,
+.error {
+  padding: 16px;
+  text-align: center;
+  color: #8e8e93;
+  font-size: 14px;
+}
+
+.app-path {
+  font-size: 12px;
+  color: #8e8e93;
+  margin-left: 8px;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.result-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
