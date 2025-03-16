@@ -113,21 +113,22 @@ html {
 }
 
 .result-item {
-  padding: 10px 16px;
-  margin: 2px 8px;
   cursor: pointer;
   transition: background-color 0.15s ease;
   font-size: 14px;
   display: flex;
+  flex-direction: row;
   align-items: center;
+  padding-left: 1rem;
+  gap: 10px;
 }
 
 .result-item:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(28, 28, 30, 0.85);
 }
 
 .result-item.selected {
-  background-color: rgba(59, 130, 246, 0.5);
+  background-color: rgba(24, 24, 24, 0.548);
 }
 
 .no-results {
@@ -157,8 +158,64 @@ html {
   white-space: nowrap;
 }
 
-.result-item {
+/* For the results container scrollbar */
+.results-container {
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: #666 #333;
+}
+
+/* For Chrome, Edge, and Safari */
+.results-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.results-container::-webkit-scrollbar-track {
+  background: #333;
+  border-radius: 4px;
+}
+
+.results-container::-webkit-scrollbar-thumb {
+  background-color: #666;
+  border-radius: 4px;
+}
+
+.results-container::-webkit-scrollbar-thumb:hover {
+  background-color: #888;
+}
+
+/* Adjust styles for virtualized items */
+.results-list-virtual .result-item {
+  cursor: pointer;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+
+  transition: background-color 0.2s;
+}
+
+.results-list-virtual .result-item .app-path {
+  font-size: 0.75rem;
+  color: #999;
+  margin-top: 2px;
+}
+
+.results-list-virtual .result-item {
+  margin: 2px 8px;
+  cursor: pointer;
+  display: flex;
+  transition: background-color 0.15s ease;
+  font-size: 14px;
+}
+
+.results-list-virtual .result-item:hover {
+  background-color: rgba(28, 28, 30, 0.85);
+}
+
+.results-list-virtual .result-item.selected {
+  background-color: rgba(19, 19, 19, 0.548);
+  border-radius: 0.5rem;
+}
+
+.app-icon {
+  aspect-ratio: 1/1;
+  object-fit: contain;
 }

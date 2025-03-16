@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { convertFileSrc } from '@tauri-apps/api/core';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import './App.css';
 
 interface AppInfo {
@@ -17,6 +19,15 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const resultsContainerRef = useRef<HTMLDivElement>(null);
 
+  const virtualizer = useVirtualizer({
+    count: results.length,
+    getScrollElement: () => resultsContainerRef.current,
+    estimateSize: () => 44,
+    overscan: 5,
+    paddingStart: 8,
+    paddingEnd: 8,
+  });
+
   useEffect(() => {
     async function loadApps() {
       try {
@@ -33,26 +44,35 @@ function App() {
     loadApps();
   }, []);
 
-  useEffect(() => {
-    async function performSearch() {
-      if (!query.trim()) {
-        setResults([]);
-        return;
-      }
+  const getIconUrl = (iconPath: string | undefined) => {
+    if (!iconPath) return undefined;
+    try {
+      return convertFileSrc(iconPath);
+    } catch (e) {
+      console.error('Failed to convert icon path', e);
+      return undefined;
+    }
+  };
 
-      try {
-        const searchResults = await invoke<AppInfo[]>('search_applications', {
-          query,
-        });
-        setResults(searchResults);
-        setSelectedIndex(0);
-      } catch (error) {
-        console.error('Search failed:', error);
-      }
+  useEffect(() => {
+    if (!query.trim()) {
+      setResults([]);
+      return;
     }
 
-    performSearch();
-  }, [query]);
+    const searchResults = apps.filter(
+      (app) =>
+        app.name.toLowerCase().includes(query.toLowerCase()) ||
+        (app.description &&
+          app.description.toLowerCase().includes(query.toLowerCase()))
+    );
+
+    if (results.length !== searchResults.length) {
+      setSelectedIndex(0);
+    }
+
+    setResults(searchResults);
+  }, [query, apps]);
 
   useEffect(() => {
     if (resultsContainerRef.current) {
@@ -67,11 +87,17 @@ function App() {
     }
   }, [results]);
 
+  useEffect(() => {
+    if (results.length > 0) {
+      virtualizer.scrollToIndex(selectedIndex, { align: 'auto' });
+    }
+  }, [selectedIndex, virtualizer, results.length]);
+
   const launchSelectedApp = async () => {
-    if (results[selectedIndex]) {
+    if (results.length > 0 && results[selectedIndex]) {
       try {
         await invoke('launch_app', { appPath: results[selectedIndex].path });
-        setQuery(''); // Clear search after launching
+        setQuery('');
       } catch (error) {
         console.error('Failed to launch app:', error);
       }
@@ -79,22 +105,23 @@ function App() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (results.length === 0) return;
+
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setSelectedIndex((prev) =>
-          prev < results.length - 1 ? prev + 1 : prev
-        );
+        setSelectedIndex((prev) => (prev < results.length - 1 ? prev + 1 : 0));
         break;
       case 'ArrowUp':
         e.preventDefault();
-        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : prev));
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : results.length - 1));
         break;
       case 'Enter':
         e.preventDefault();
         launchSelectedApp();
         break;
       case 'Escape':
+        e.preventDefault();
         setQuery('');
         break;
     }
@@ -137,27 +164,60 @@ function App() {
         <div
           ref={resultsContainerRef}
           className={`results-container ${results.length > 0 ? 'visible' : ''}`}
+          style={{
+            height:
+              results.length > 0 ? Math.min(400, results.length * 44 + 16) : 0,
+          }}
         >
           {isLoading ? (
             <div className='loading'>Loading applications...</div>
           ) : results.length > 0 ? (
-            <ul className='results-list'>
-              {results.map((app, index) => (
-                <li
-                  key={index}
-                  className={`result-item ${
-                    selectedIndex === index ? 'selected' : ''
-                  }`}
-                  onClick={() => {
-                    setSelectedIndex(index);
-                    launchSelectedApp();
-                  }}
-                >
-                  {app.name}
-                  <span className='app-path'>{app.path}</span>
-                </li>
-              ))}
-            </ul>
+            <div
+              className='results-list-virtual'
+              style={{
+                height: `${virtualizer.getTotalSize()}px`,
+                width: '100%',
+                position: 'relative',
+              }}
+            >
+              {virtualizer.getVirtualItems().map((virtualItem) => {
+                const app = results[virtualItem.index];
+
+                return (
+                  <div
+                    key={virtualItem.key}
+                    className={`result-item ${
+                      selectedIndex === virtualItem.index ? 'selected' : ''
+                    }`}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: 'calc(100% - 16px)',
+                      height: `${virtualItem.size}px`,
+                      transform: `translateY(${virtualItem.start}px)`,
+                    }}
+                    onClick={() => {
+                      setSelectedIndex(virtualItem.index);
+                      launchSelectedApp();
+                    }}
+                  >
+                    <div className='app-icon-container'>
+                      {app.icon_path ? (
+                        <img
+                          src={getIconUrl(app.icon_path)}
+                          className='app-icon'
+                          alt=''
+                        />
+                      ) : (
+                        <div className='app-icon-placeholder'>📱</div>
+                      )}
+                    </div>
+                    <span className='app-name'>{app.name}</span>
+                  </div>
+                );
+              })}
+            </div>
           ) : query.trim() !== '' ? (
             <div className='no-results'>No results found</div>
           ) : null}
