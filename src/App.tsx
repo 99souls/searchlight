@@ -101,9 +101,9 @@ function App() {
   };
 
   return (
-    <div className='raycast-wrapper'>
+    <div className='searchlight-wrapper'>
       <div
-        className={`raycast-container ${
+        className={`searchlight-container ${
           results.length > 0 ? 'has-results' : ''
         }`}
       >

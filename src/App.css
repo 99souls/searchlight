@@ -18,13 +18,13 @@ html {
   align-items: flex-start;
 }
 
-.raycast-wrapper {
+.searchlight-wrapper {
   width: 100%;
   display: flex;
   justify-content: center;
 }
 
-.raycast-container {
+.searchlight-container {
   width: 640px;
   background: rgba(28, 28, 30, 0.85);
   backdrop-filter: blur(20px);
@@ -34,7 +34,7 @@ html {
   transition: all 0.2s ease;
 }
 
-.raycast-container.has-results {
+.searchlight-container.has-results {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
